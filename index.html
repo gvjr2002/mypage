@@ -1,159 +1,237 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-   <script referrerpolicy="no-referrer-when-downgrade" src="https://dev.visualwebsiteoptimizer.com/cloud-run-test/final/29000585.js" id="vwoCode"></script>
-  <title>Ultimate Event Test Page</title>
-
-  <style>
-    body {font-family: Arial; margin:0}
-    nav {background:#222;color:#fff;padding:15px}
-    nav button{margin-right:10px}
-    .page{display:none;padding:20px}
-    .active{display:block}
-    .box{width:220px;height:120px;background:#eee;margin:20px 0;padding:10px}
-    #scrollArea{height:900px;background:linear-gradient(white,lightblue)}
-    iframe{width:100%;height:250px;border:2px solid black}
-  </style>
+    <script referrerpolicy="no-referrer-when-downgrade" src="https://dev.visualwebsiteoptimizer.com/cloud-run-test/final/29000585.js" id="vwoCode"></script>
+<meta charset="UTF-8">
+<title>Analytics Event Playground</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body {font-family: Arial; margin:0; line-height:1.4}
+  nav {background:#222; color:#fff; padding:10px; position:sticky; top:0}
+  nav button {margin-right:10px}
+  section {padding:20px; border-bottom:1px solid #ddd}
+  .card {border:1px solid #ccc; padding:15px; margin:10px 0}
+  .hover-box {padding:20px; background:#eee; display:inline-block}
+  .long-content {height:400px; overflow:auto; border:1px solid #aaa}
+  .hidden {display:none}
+  .modal {position:fixed; inset:0; background:#0008; display:none; align-items:center; justify-content:center}
+  .modal-content {background:#fff; padding:20px}
+</style>
 </head>
 
 <body>
 
 <nav>
-  SPA Navigation:
-  <button onclick="navigate('home')">Home</button>
-  <button onclick="navigate('forms')">Forms</button>
-  <button onclick="navigate('journey')">User Journey</button>
+  <button onclick="navigate('/')">Home</button>
+  <button onclick="navigate('/products')">Products</button>
+  <button onclick="navigate('/login')">Login</button>
+  <button onclick="openModal()">Open Modal</button>
 </nav>
 
-<!-- HOME PAGE -->
-<div id="home" class="page active">
-  <h2>Home Page Events</h2>
+<div id="app"></div>
 
-  <button id="clickBtn">Click + MouseDown Test</button>
-
-  <div id="hoverBox" class="box">Hover Over Me</div>
-
-  <div id="scrollArea">Scroll Down Page</div>
-
-  <h3>Shadow DOM in Home</h3>
-  <div id="homeShadowHost"></div>
-
-  <h3>Iframe in Home</h3>
-  <iframe srcdoc='
-    <h3>Iframe Area</h3>
-    <input id="iframeFocus" placeholder="Focus inside iframe"><br><br>
-    <button onclick="console.log(`Iframe click`)">Iframe Click</button>
-    <form onsubmit="event.preventDefault();console.log(`Iframe form submit`)">
-      <input placeholder="Iframe Name">
-      <button type="submit">Submit</button>
-    </form>
-  '></iframe>
-</div>
-
-<!-- FORMS PAGE -->
-<div id="forms" class="page">
-  <h2>Normal Forms</h2>
-
-  <form id="form1">
-    <h3>Form 1</h3>
-    <input id="name" placeholder="Name"><br><br>
-    <input id="email" placeholder="Email"><br><br>
-    <button type="submit">Submit Form 1</button>
-  </form>
-
-  <br><br>
-
-  <form id="form2">
-    <h3>Form 2</h3>
-    <input id="phone" placeholder="Phone"><br><br>
-    <button type="submit">Submit Form 2</button>
-  </form>
-
-  <h3>Shadow DOM Form</h3>
-  <div id="formShadowHost"></div>
-
-  <h3>Iframe Form</h3>
-  <iframe srcdoc='
-    <form onsubmit="event.preventDefault();console.log(`Iframe Form Submitted`)">
-      <input id="iframeEmail" placeholder="Iframe Email"><br><br>
-      <button type="submit">Submit Iframe Form</button>
-    </form>
-  '></iframe>
-</div>
-
-<!-- USER JOURNEY PAGE -->
-<div id="journey" class="page">
-  <h2>Real User Journey Simulation</h2>
-  <p>Step 1: Click → Step 2: Focus → Step 3: Hover → Step 4: Submit</p>
-
-  <button id="journeyClick">Start Journey</button>
-  <br><br>
-  <input id="journeyInput" placeholder="Focus here"><br><br>
-  <div id="journeyHover" class="box">Hover me</div>
-
-  <form id="journeyForm">
-    <input placeholder="Final Input">
-    <button type="submit">Finish Journey</button>
-  </form>
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Modal Interaction</h3>
+    <button onclick="closeModal()">Close</button>
+  </div>
 </div>
 
 <script>
-/* SPA NAVIGATION */
-function navigate(page){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById(page).classList.add("active");
-  history.pushState({}, "", "#"+page);
+// ================= GLOBAL EVENT DEBUGGER =================
+const events = ["click","mousedown","mouseup","mouseenter","mouseleave",
+"focus","blur","input","change","keydown","keyup","submit"];
+
+events.forEach(evt=>{
+  document.addEventListener(evt, e=>{
+    console.log("EVENT:", evt, "Target:", e.target, "Path:", e.composedPath());
+  }, true);
+});
+
+window.addEventListener("scroll", ()=>console.log("Scroll Y:", window.scrollY));
+
+// ================= SPA ROUTER =================
+function navigate(path){
+  history.pushState({}, "", path);
+  renderRoute();
+  console.log("URL:", location.pathname);
+}
+window.onpopstate = renderRoute;
+
+function renderRoute(){
+  const app=document.getElementById("app");
+  if(location.pathname==="/products") app.innerHTML=productsPage();
+  else if(location.pathname==="/login") app.innerHTML=loginPage();
+  else app.innerHTML=homePage();
 }
 
-/* CLICK + MOUSEDOWN */
-clickBtn.addEventListener("click",()=>console.log("Click fired"));
-clickBtn.addEventListener("mousedown",()=>console.log("MouseDown fired"));
+// ================= HOME =================
+function homePage(){
+return `
+<section>
+<h1>Home</h1>
+<div class="hover-box">Hover me</div>
 
-/* HOVER */
-hoverBox.addEventListener("mouseover",()=>console.log("Hover fired"));
+<h2>Accordion</h2>
+<button onclick="toggleAccordion()">Toggle</button>
+<div id="accordion" class="hidden">Accordion content</div>
 
-/* SCROLL */
-window.addEventListener("scroll",()=>console.log("Scroll fired"));
+<h2>Search Form</h2>
+<form onsubmit="alert('Search submitted');return false;">
+<input placeholder="Search..." required>
+<select><option>All</option><option>Products</option></select>
+<button>Search</button>
+</form>
 
-/* GLOBAL FOCUS / BLUR */
-document.addEventListener("focus",e=>console.log("Focus:",e.target.id),true);
-document.addEventListener("blur",e=>console.log("Blur:",e.target.id),true);
+<h2>Infinite Scroll Simulation</h2>
+<div class="long-content" id="scrollArea"></div>
 
-/* FORM SUBMITS */
-form1.onsubmit=e=>{e.preventDefault();console.log("Form1 submitted")};
-form2.onsubmit=e=>{e.preventDefault();console.log("Form2 submitted")};
-journeyForm.onsubmit=e=>{e.preventDefault();console.log("Journey completed")};
+<h2>Dynamic DOM</h2>
+<button onclick="addDynamic()">Add element after delay</button>
 
-/* JOURNEY EVENTS */
-journeyClick.onclick=()=>console.log("Journey click");
-journeyHover.onmouseover=()=>console.log("Journey hover");
+<h2>Iframe Demo</h2>
+<div id="iframeContainer"></div>
 
-/* SHADOW DOM - HOME */
-const homeShadow = document.getElementById("homeShadowHost").attachShadow({mode:"open"});
-homeShadow.innerHTML = `
-  <h4>Shadow Elements</h4>
-  <input id="shadowInputHome" placeholder="Shadow Focus">
-  <button id="shadowBtnHome">Shadow Click</button>
-  <form id="shadowFormHome">
-    <input placeholder="Shadow Name">
-    <button type="submit">Submit Shadow Form</button>
-  </form>
-`;
-homeShadow.getElementById("shadowBtnHome")
-  .addEventListener("click",()=>console.log("Shadow click (home)"));
-homeShadow.getElementById("shadowFormHome")
-  .addEventListener("submit",e=>{e.preventDefault();console.log("Shadow form submit (home)")});
+<h2>Shadow DOM Components</h2>
+<shadow-form></shadow-form>
+<nested-shadow></nested-shadow>
+</section>`;
+}
 
-/* SHADOW DOM - FORMS */
-const formShadow = document.getElementById("formShadowHost").attachShadow({mode:"open"});
-formShadow.innerHTML = `
-  <form id="shadowForm2">
-    <input id="shadowEmail" placeholder="Shadow Email">
-    <button type="submit">Submit Shadow Form 2</button>
-  </form>
-`;
-formShadow.getElementById("shadowForm2")
-  .addEventListener("submit",e=>{e.preventDefault();console.log("Shadow form 2 submit")});
+// ================= PRODUCTS =================
+function productsPage(){
+return `
+<section>
+<h1>Products</h1>
+<div class="card">
+  <h3>Product A</h3>
+  <button onclick="alert('Added to cart')">Add to cart</button>
+</div>
+
+<form onsubmit="alert('Checkout submitted');return false;">
+<h2>Checkout Form</h2>
+<input placeholder="Name" required>
+<input type="password" placeholder="Password">
+<textarea placeholder="Address"></textarea>
+<label><input type="checkbox"> Accept terms</label><br>
+<label><input type="radio" name="pay"> Card</label>
+<label><input type="radio" name="pay"> COD</label><br>
+<select><option>India</option><option>USA</option></select>
+<button>Submit</button>
+</form>
+</section>`;
+}
+
+// ================= LOGIN =================
+function loginPage(){
+return `
+<section>
+<h1>Login / Signup / Feedback</h1>
+
+<form onsubmit="alert('Login submit');return false;">
+<h3>Login</h3>
+<input placeholder="Email" required>
+<input type="password" placeholder="Password">
+<button>Login</button>
+</form>
+
+<form onsubmit="alert('Signup submit');return false;">
+<h3>Signup</h3>
+<input placeholder="Name">
+<input placeholder="Email">
+<input type="password" placeholder="Password">
+<textarea placeholder="Bio"></textarea>
+<label><input type="checkbox"> Subscribe</label>
+<select><option>Male</option><option>Female</option></select>
+<button>Signup</button>
+</form>
+
+<form onsubmit="alert('Feedback submit');return false;">
+<h3>Feedback</h3>
+<textarea required></textarea>
+<button>Submit</button>
+</form>
+
+</section>`;
+}
+
+// ================= ACCORDION =================
+function toggleAccordion(){
+  document.getElementById("accordion").classList.toggle("hidden");
+}
+
+// ================= MODAL =================
+function openModal(){ modal.style.display="flex"; }
+function closeModal(){ modal.style.display="none"; }
+
+// ================= DYNAMIC ELEMENT =================
+function addDynamic(){
+  setTimeout(()=>{
+    const el=document.createElement("button");
+    el.textContent="Dynamically added button";
+    document.body.appendChild(el);
+  },1500);
+}
+
+// ================= INFINITE SCROLL =================
+function loadScroll(){
+  const area=document.getElementById("scrollArea");
+  if(!area) return;
+  for(let i=0;i<50;i++){
+    const p=document.createElement("p");
+    p.textContent="Scrollable content line "+i;
+    area.appendChild(p);
+  }
+}
+document.addEventListener("DOMContentLoaded", loadScroll);
+
+// ================= SHADOW DOM COMPONENT =================
+customElements.define("shadow-form", class extends HTMLElement{
+  constructor(){
+    super();
+    const shadow=this.attachShadow({mode:"open"});
+    shadow.innerHTML=`
+      <style>button{background:#ddd}</style>
+      <h3>Shadow DOM Form</h3>
+      <form>
+        <input placeholder="Shadow input">
+        <button>Submit</button>
+      </form>`;
+  }
+});
+
+// Nested shadow DOM
+customElements.define("nested-shadow", class extends HTMLElement{
+  constructor(){
+    super();
+    const shadow=this.attachShadow({mode:"open"});
+    const inner=document.createElement("inner-shadow");
+    shadow.appendChild(inner);
+  }
+});
+customElements.define("inner-shadow", class extends HTMLElement{
+  constructor(){
+    super();
+    const shadow=this.attachShadow({mode:"open"});
+    shadow.innerHTML=`<button>Nested Shadow Button</button>`;
+  }
+});
+
+// ================= IFRAME =================
+function createIframe(){
+  const iframe=document.createElement("iframe");
+  iframe.srcdoc=`
+    <h3>Iframe Form</h3>
+    <form onsubmit="alert('iframe form submit');return false;">
+      <input placeholder="Iframe input">
+      <button>Submit</button>
+    </form>`;
+  document.getElementById("iframeContainer").appendChild(iframe);
+}
+setTimeout(createIframe,1000);
+
+// Initial render
+renderRoute();
 </script>
 
 </body>
